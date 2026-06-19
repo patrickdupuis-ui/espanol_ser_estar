@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --paper:#f2f1ec; --card:#ffffff; --ink:#1c2433; --muted:#6b7280;
@@ -167,6 +168,10 @@
   .srow .ssc{font-family:var(--sans); font-weight:600; font-size:15px; margin-left:auto;}
   .empty{font-family:var(--serif); font-size:16px; color:var(--muted); line-height:1.55; padding:6px 0 2px;}
   .ghost.danger{color:var(--no);} .ghost.danger:hover{border-color:var(--no); background:#fcf2f1;}
+  .drive{margin-top:2px;}
+  .driverow{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; border-top:1px solid var(--line); padding-top:14px; margin-top:6px;}
+  .dstat{font-size:13px; color:var(--muted); font-family:var(--sans);}
+  .dbtns{display:flex; gap:10px; flex-wrap:wrap;}
 
   [hidden]{display:none !important;}
   @media (max-width:520px){ .cards{grid-template-columns:repeat(2,1fr);} }
@@ -203,6 +208,7 @@
         <div class="seg" id="lenSeg" role="group" aria-label="Número de frases">
           <button data-n="10" aria-pressed="false">10</button>
           <button data-n="25" aria-pressed="true">25</button>
+          <button data-n="50" aria-pressed="false">50</button>
           <button data-n="0" aria-pressed="false">Todas</button>
         </div>
       </div>
@@ -252,6 +258,17 @@
     <div class="pad">
       <p class="stitle">Rendimiento</p>
       <div id="statsBody"></div>
+      <div class="drive">
+        <p class="sec-h">Sincronización con Google Drive</p>
+        <div class="driverow">
+          <span class="dstat" id="driveStatus">No conectado</span>
+          <span class="dbtns">
+            <button class="ghost" id="driveConnect">Conectar con Google</button>
+            <button class="ghost" id="driveSync" hidden>Sincronizar ahora</button>
+            <button class="ghost" id="driveDisconnect" hidden>Desconectar</button>
+          </span>
+        </div>
+      </div>
       <div class="rbtns">
         <button class="primary" id="statsBack">← Volver</button>
         <button class="ghost" id="exportBtn" hidden>Exportar (.json)</button>
@@ -264,6 +281,12 @@
 </div>
 
 <script>
+/* ============================================================
+   GOOGLE DRIVE SYNC — paste your OAuth Client ID between the quotes.
+   Leave it as "" to keep Drive sync turned off.
+   ============================================================ */
+const GOOGLE_CLIENT_ID = "";   // e.g. "1234567890-abc123.apps.googleusercontent.com"
+
 const BANK = [
  {s:"La reunión ___ en la sala de juntas.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Para situar dónde ocurre un evento (reunión, clase, fiesta) se usa ser. Estar localiza objetos y personas, no eventos."},
  {s:"El baño ___ al final del pasillo.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un lugar", why:"La ubicación física de un lugar u objeto va con estar: «¿Dónde está…?»."},
@@ -310,7 +333,256 @@ const BANK = [
  {s:"Este barrio ___ muy seguro; puedes caminar de noche.", ser:"es", estar:"está", a:"ser", cat:"Cambio de significado", why:"Ser seguro = sin peligro. Estar seguro = tener certeza de algo."},
  {s:"El insecto ya ___ muerto; no se mueve.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"«Muerto» es el resultado de un cambio de estado, por eso va con estar aunque sea definitivo."},
  {s:"La fiesta ___ buenísima anoche; la pasamos increíble.", ser:"fue", estar:"estuvo", a:"estar", cat:"Valorar una experiencia (AmL)", why:"En América Latina, valorar cómo resultó un evento se hace muy a menudo con estar: «estuvo buenísima». No confundir con dónde se celebra, que va con ser."},
- {s:"Mi computadora ___ descompuesta otra vez.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"Una avería es un estado resultante, por eso estar. Léxico de América Latina: computadora, descompuesta."}
+ {s:"Mi computadora ___ descompuesta otra vez.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"Una avería es un estado resultante, por eso estar. Léxico de América Latina: computadora, descompuesta."},
+ {s:"El libro ___ en la mesa.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El libro ___ al lado de la puerta.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El celular ___ sobre el escritorio.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El celular ___ en el carro.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La computadora ___ en la cocina.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La computadora ___ en mi mochila.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Las llaves ___ en el cajón.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Las llaves ___ sobre el sofá.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El control remoto ___ debajo de la cama.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El control remoto ___ en la sala.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Los lentes ___ al lado de la puerta.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Los lentes ___ junto a la ventana.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El cuaderno ___ en el carro.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El cuaderno ___ en el estante.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La taza ___ en mi mochila.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La taza ___ en el baño.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El vaso ___ sobre el sofá.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El vaso ___ detrás de la puerta.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La maleta ___ en la sala.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La maleta ___ en la mesa.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El paraguas ___ junto a la ventana.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El paraguas ___ sobre el escritorio.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Los zapatos ___ en el estante.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Los zapatos ___ en la cocina.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La cartera ___ en el baño.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La cartera ___ en el cajón.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El cargador ___ detrás de la puerta.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El cargador ___ debajo de la cama.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El periódico ___ en la mesa.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El periódico ___ al lado de la puerta.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La botella ___ sobre el escritorio.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La botella ___ en el carro.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La mochila ___ en la cocina.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La mochila ___ en mi mochila.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Las tijeras ___ en el cajón.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Las tijeras ___ sobre el sofá.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El cuchillo ___ debajo de la cama.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"El cuchillo ___ en la sala.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La silla ___ al lado de la puerta.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"La silla ___ junto a la ventana.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de un objeto", why:"La ubicación de un objeto o lugar va con estar."},
+ {s:"Mi mamá ___ en casa.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"El profesor ___ en la oficina.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Los niños ___ en el colegio.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Mis amigos ___ en el parque.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Tu hermano ___ en la cocina.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"El doctor ___ en Lima.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Ella ___ en el aeropuerto.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Ellos ___ afuera.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Nosotros ___ arriba.", ser:"somos", estar:"estamos", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Yo ___ en el carro.", ser:"soy", estar:"estoy", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Tú ___ en la sala de espera.", ser:"eres", estar:"estás", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Mi jefe ___ de viaje.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Las visitas ___ en la reunión.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"El gato ___ en el hospital.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Ustedes ___ en casa.", ser:"son", estar:"están", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"Mi abuela ___ en la oficina.", ser:"es", estar:"está", a:"estar", cat:"Ubicación de una persona", why:"Dónde se encuentra una persona va con estar."},
+ {s:"La reunión ___ en el salón.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"La fiesta ___ en el teatro.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"El concierto ___ en la oficina.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"La boda ___ en mi casa.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"La clase ___ en el estadio.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"El examen ___ en el auditorio.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"La conferencia ___ en el hotel.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"El partido ___ en la universidad.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"La ceremonia ___ en línea.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"La cena ___ en el centro de convenciones.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"Los exámenes ___ en el restaurante.", ser:"son", estar:"están", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"Las reuniones ___ en la sala 3.", ser:"son", estar:"están", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"El taller ___ en el salón.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"La entrevista ___ en el teatro.", ser:"es", estar:"está", a:"ser", cat:"Ubicación de un evento", why:"Dónde tiene lugar un evento va con ser; estar localiza cosas y personas, no eventos."},
+ {s:"Mi padre ___ ingeniero.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Mi madre ___ médica.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Mi hermano ___ abogado.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Mi hermana ___ arquitecta.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Mi tío ___ contador.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Mi tía ___ profesora.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Mi primo ___ enfermero.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Mi prima ___ periodista.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"El señor López ___ dentista.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"La señora Díaz ___ cocinera.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Tú ___ estudiante.", ser:"eres", estar:"estás", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Ustedes ___ ingenieros.", ser:"son", estar:"están", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Ellos ___ programadores.", ser:"son", estar:"están", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Ellas ___ médicas.", ser:"son", estar:"están", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Nosotros ___ abogados.", ser:"somos", estar:"estamos", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Yo ___ profesor.", ser:"soy", estar:"estoy", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Carlos ___ piloto.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"María ___ enfermera.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Ana y Luis ___ maestros.", ser:"son", estar:"están", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Diego ___ veterinario.", ser:"es", estar:"está", a:"ser", cat:"Profesión", why:"La profesión o el oficio van con ser."},
+ {s:"Ella ___ peruana.", ser:"es", estar:"está", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Él ___ mexicano.", ser:"es", estar:"está", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Nosotros ___ de Perú.", ser:"somos", estar:"estamos", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Yo ___ de Francia.", ser:"soy", estar:"estoy", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Tú ___ colombiano.", ser:"eres", estar:"estás", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Ellos ___ argentinos.", ser:"son", estar:"están", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Ellas ___ chilenas.", ser:"son", estar:"están", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Mi abuela ___ española.", ser:"es", estar:"está", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Mi abuelo ___ italiano.", ser:"es", estar:"está", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Ustedes ___ de Lima.", ser:"son", estar:"están", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Marta ___ venezolana.", ser:"es", estar:"está", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Diego ___ uruguayo.", ser:"es", estar:"está", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Mis vecinos ___ brasileños.", ser:"son", estar:"están", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"La profesora ___ cubana.", ser:"es", estar:"está", a:"ser", cat:"Origen o nacionalidad", why:"El origen y la nacionalidad van con ser."},
+ {s:"Las sillas ___ de plástico.", ser:"son", estar:"están", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"El anillo ___ de oro.", ser:"es", estar:"está", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"La camisa ___ de algodón.", ser:"es", estar:"está", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"Los juguetes ___ de vidrio.", ser:"son", estar:"están", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"La ventana ___ de metal.", ser:"es", estar:"está", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"El collar ___ de cuero.", ser:"es", estar:"está", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"La bolsa ___ de lana.", ser:"es", estar:"está", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"Las monedas ___ de plata.", ser:"son", estar:"están", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"El piso ___ de cerámica.", ser:"es", estar:"está", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"La estatua ___ de papel.", ser:"es", estar:"está", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"Los guantes ___ de madera.", ser:"son", estar:"están", a:"ser", cat:"Material", why:"El material del que algo está hecho se expresa con ser de."},
+ {s:"___ las cinco de la tarde.", ser:"Son", estar:"Están", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"___ la una en punto.", ser:"Es", estar:"Está", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"Hoy ___ martes.", ser:"es", estar:"está", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"Mañana ___ feriado.", ser:"es", estar:"está", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"Ya ___ las diez de la noche.", ser:"son", estar:"están", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"___ las tres y media.", ser:"Son", estar:"Están", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"Hoy ___ 15 de marzo.", ser:"es", estar:"está", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"___ medianoche.", ser:"Es", estar:"Está", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"Ahora ___ las nueve.", ser:"son", estar:"están", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"___ las ocho de la mañana.", ser:"Son", estar:"Están", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"Hoy ___ domingo.", ser:"es", estar:"está", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"Por fin ___ viernes.", ser:"es", estar:"está", a:"ser", cat:"Hora y fecha", why:"La hora, el día y la fecha van con ser."},
+ {s:"Ese carro ___ de mi hermano.", ser:"es", estar:"está", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Estos libros ___ de Ana.", ser:"son", estar:"están", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"La casa ___ de mis padres.", ser:"es", estar:"está", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Esas maletas ___ de la empresa.", ser:"son", estar:"están", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"El perro ___ de Carlos.", ser:"es", estar:"está", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Esta computadora ___ de mi vecina.", ser:"es", estar:"está", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Los juguetes ___ del profesor.", ser:"son", estar:"están", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"La idea ___ de la abuela.", ser:"es", estar:"está", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Ese paraguas ___ de mi socio.", ser:"es", estar:"está", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Las llaves ___ del cliente.", ser:"son", estar:"están", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Esa bicicleta ___ de mi hermano.", ser:"es", estar:"está", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Estos documentos ___ de Ana.", ser:"son", estar:"están", a:"ser", cat:"Posesión", why:"La pertenencia (de quién es algo) se expresa con ser de."},
+ {s:"Mi mamá ___ cansada.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Pedro ___ contento.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Hoy los niños ___ emocionados.", ser:"son", estar:"están", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"En este momento yo ___ preocupado.", ser:"soy", estar:"estoy", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Después del viaje tú ___ ocupado.", ser:"eres", estar:"estás", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Ella ___ enojada.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Nosotros ___ agotados.", ser:"somos", estar:"estamos", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Hoy mis amigos ___ tristes.", ser:"son", estar:"están", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"En este momento el bebé ___ dormido.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Después del viaje ana ___ resfriada.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Ustedes ___ confundidos.", ser:"son", estar:"están", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Él ___ sorprendido.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Hoy la profesora ___ molesta.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"En este momento mi hermana ___ asustada.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Después del viaje los pasajeros ___ mareados.", ser:"son", estar:"están", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Tú ___ despierto.", ser:"eres", estar:"estás", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"El equipo ___ satisfecho.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Hoy carlos ___ emocionado.", ser:"es", estar:"está", a:"estar", cat:"Estado de ánimo o condición", why:"Los estados de ánimo y las condiciones pasajeras van con estar."},
+ {s:"Los niños ___ jugando en el parque.", ser:"son", estar:"están", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Yo ___ comiendo.", ser:"soy", estar:"estoy", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Ella ___ estudiando para el examen.", ser:"es", estar:"está", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Nosotros ___ trabajando.", ser:"somos", estar:"estamos", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Tú ___ durmiendo.", ser:"eres", estar:"estás", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"El profesor ___ leyendo un libro.", ser:"es", estar:"está", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Mis amigos ___ escribiendo un correo.", ser:"son", estar:"están", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"El bebé ___ cocinando la cena.", ser:"es", estar:"está", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Ustedes ___ corriendo.", ser:"son", estar:"están", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Mi mamá ___ viendo la tele.", ser:"es", estar:"está", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Él ___ esperando el bus.", ser:"es", estar:"está", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Mi hermano ___ escuchando música.", ser:"es", estar:"está", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"Afuera ___ lloviendo.", ser:"es", estar:"está", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"___ nevando en la montaña.", ser:"Es", estar:"Está", a:"estar", cat:"Acción en curso", why:"El gerundio (-ando/-iendo) forma el presente continuo con estar."},
+ {s:"La puerta ya ___ cerrada.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"La ventana ___ abierta.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"El vaso ___ roto.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"La tarea ya ___ terminada.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"Las luces ___ apagadas.", ser:"son", estar:"están", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"El televisor ___ encendido.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"La botella ya ___ vacía.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"El estacionamiento ___ lleno.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"La carta ___ escrita.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"Los platos ya ___ lavados.", ser:"son", estar:"están", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"La cama ___ tendida.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"El cuarto ___ ordenado.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"Las camas ya ___ hechas.", ser:"son", estar:"están", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"El problema ___ resuelto.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"La comida ___ servida.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"El informe ya ___ listo.", ser:"es", estar:"está", a:"estar", cat:"Resultado de un cambio", why:"El estado que resulta de una acción se expresa con estar + participio."},
+ {s:"Mi tío ___ alto.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Mi tía ___ muy amable.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"La caja ___ cuadrada.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"El edificio ___ enorme.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Esos árboles ___ altos.", ser:"son", estar:"están", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"La sala ___ grande.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Mi perro ___ pequeño.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Sus ojos ___ azules.", ser:"son", estar:"están", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"La pared ___ blanca.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"El examen ___ difícil.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Este problema ___ complicado.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Mis abuelos ___ simpáticos.", ser:"son", estar:"están", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Ella ___ inteligente.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Tú ___ muy amable.", ser:"eres", estar:"estás", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"El círculo ___ redondo.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"La torre ___ altísima.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Los gemelos ___ idénticos.", ser:"son", estar:"están", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"Mi vecino ___ antipático.", ser:"es", estar:"está", a:"ser", cat:"Cualidad inherente", why:"Las cualidades esenciales y duraderas van con ser."},
+ {s:"___ importante descansar.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ necesario practicar todos los días.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ difícil aprender un idioma.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ fácil equivocarse.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ posible que llueva.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ mejor llegar temprano.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ bueno hacer ejercicio.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ malo fumar.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ útil tomar notas.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ imposible adivinarlo.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ necesario firmar aquí.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ importante leer el contrato.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ raro que no haya llegado.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"___ normal sentirse así.", ser:"Es", estar:"Está", a:"ser", cat:"Expresión impersonal", why:"Las expresiones impersonales (es importante, es necesario…) van con ser."},
+ {s:"El contrato ___ firmado por el abogado.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"La demanda ___ presentada por la empresa.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"Las cartas ___ enviadas por el comité.", ser:"fueron", estar:"estuvieron", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"Los informes ___ entregados por el arquitecto.", ser:"fueron", estar:"estuvieron", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"El acuerdo ___ redactado por el director.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"La ley ___ aprobada por el jurado.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"El documento ___ revisado por la autora.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"La casa ___ construida por el equipo.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"Los premios ___ otorgados por el gobierno.", ser:"fueron", estar:"estuvieron", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"La novela ___ escrita por el artista.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"El cuadro ___ pintado por el abogado.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"Las facturas ___ pagadas por la empresa.", ser:"fueron", estar:"estuvieron", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"El proyecto ___ aprobado por el comité.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"La decisión ___ tomada por el arquitecto.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"El edificio ___ diseñado por el director.", ser:"fue", estar:"estuvo", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"Los resultados ___ publicados por el jurado.", ser:"fueron", estar:"estuvieron", a:"ser", cat:"Voz pasiva", why:"La voz pasiva (alguien hace la acción) se forma con ser + participio: fue/fueron + participio + por…"},
+ {s:"Nosotros ___ de acuerdo con el plan.", ser:"somos", estar:"estamos", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Ella ___ de vacaciones esta semana.", ser:"es", estar:"está", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Ese estilo ___ de moda ahora.", ser:"es", estar:"está", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Los invitados ___ de pie.", ser:"son", estar:"están", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"(Nosotros) ya ___ a punto de salir.", ser:"somos", estar:"estamos", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Yo ___ harto de esperar.", ser:"soy", estar:"estoy", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Tú siempre ___ al tanto de todo.", ser:"eres", estar:"estás", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"El proyecto ___ en marcha.", ser:"es", estar:"está", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Ellos ___ de buen humor hoy.", ser:"son", estar:"están", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"La situación ___ bajo control.", ser:"es", estar:"está", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Nosotros ___ de paso por la ciudad.", ser:"somos", estar:"estamos", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"El jefe ___ de mal humor.", ser:"es", estar:"está", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Todo ___ en orden.", ser:"es", estar:"está", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."},
+ {s:"Ustedes ___ de turno hoy.", ser:"son", estar:"están", a:"estar", cat:"Locución fija", why:"Es una locución fija que se construye con estar."}
 ];
 
 // ---------- storage (saves locally in the browser where you open this file) ----------
@@ -472,8 +744,9 @@ function showResults(){
   quizSec.hidden=true; resSec.hidden=false; resetBtn.hidden=false;
   const ts=Date.now();
   data.sessions.push({t:ts, day:dayKey(ts), correct:score, total:order.length, mode: fillMode?"escribir":"elegir"});
-  if(data.sessions.length>500) data.sessions=data.sessions.slice(-500);
+  if(data.sessions.length>2000) data.sessions=data.sessions.slice(-2000);
   saveStore(data);
+  driveMaybePush();
 
   const total=order.length, pct=Math.round((score/total)*100);
   el("rScore").innerHTML=`${score} <small>/ ${total}</small>`;
@@ -578,7 +851,7 @@ function importData(e){
       });
       data.sessions.sort((a,b)=>a.t-b.t);
       if(data.sessions.length>500) data.sessions=data.sessions.slice(-500);
-      saveStore(data); renderStats();
+      saveStore(data); renderStats(); driveMaybePush();
       alert(added ? `Importadas ${added} sesiones nuevas.` : "El archivo no añadió sesiones nuevas (ya estaban registradas).");
     }catch(err){
       alert("No se pudo leer el archivo. Debe ser un export de esta práctica (.json).");
@@ -588,6 +861,123 @@ function importData(e){
   reader.onerror=()=>{ alert("No se pudo leer el archivo."); e.target.value=""; };
   reader.readAsText(file);
 }
+
+// ---------- Google Drive sync (appDataFolder) ----------
+const DRIVE_SCOPE="https://www.googleapis.com/auth/drive.appdata";
+const DRIVE_FILENAME="ser-estar-datos.json";
+let driveToken=null, driveTokenClient=null, driveFileId=null, driveBusy=false;
+
+function clientId(){
+  if(GOOGLE_CLIENT_ID) return GOOGLE_CLIENT_ID;
+  try{ return localStorage.getItem("serEstar.clientId")||""; }catch(e){ return ""; }
+}
+function setDriveStatus(t){ const s=el("driveStatus"); if(s) s.textContent=t; }
+function nowHM(){ const d=new Date(); const z=n=>String(n).padStart(2,"0"); return z(d.getHours())+":"+z(d.getMinutes()); }
+function driveHeaders(extra){ return Object.assign({Authorization:"Bearer "+driveToken}, extra||{}); }
+function gisReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
+function ensureGis(cb){
+  if(gisReady()) return cb();
+  let n=0; const iv=setInterval(()=>{ if(gisReady()){ clearInterval(iv); cb(); } else if(++n>50){ clearInterval(iv); setDriveStatus("No se pudo cargar Google."); } }, 100);
+}
+function makeTokenClient(){
+  const cid=clientId(); if(!cid) return null;
+  return google.accounts.oauth2.initTokenClient({
+    client_id:cid, scope:DRIVE_SCOPE,
+    callback:(resp)=>{ if(resp && resp.access_token){ driveToken=resp.access_token; onDriveConnected(); } else { setDriveStatus("No se completó la conexión."); } },
+    error_callback:()=>{ setDriveStatus(driveToken?"Conectado":"No conectado"); }
+  });
+}
+function driveConnect(interactive){
+  if(!clientId()){
+    const v=prompt("Pega tu ID de cliente de Google (OAuth Client ID):","");
+    if(!v) return;
+    try{ localStorage.setItem("serEstar.clientId", v.trim()); }catch(e){}
+  }
+  ensureGis(()=>{
+    if(!driveTokenClient) driveTokenClient=makeTokenClient();
+    if(!driveTokenClient){ setDriveStatus("Falta el ID de cliente."); return; }
+    setDriveStatus("Conectando…");
+    driveTokenClient.requestAccessToken({prompt: interactive ? "consent" : ""});
+  });
+}
+async function onDriveConnected(){
+  try{ localStorage.setItem("serEstar.driveOn","1"); }catch(e){}
+  if(el("driveConnect")) el("driveConnect").hidden=true;
+  if(el("driveSync")) el("driveSync").hidden=false;
+  if(el("driveDisconnect")) el("driveDisconnect").hidden=false;
+  await driveSyncNow();
+}
+function driveDisconnect(){
+  driveToken=null;
+  try{ localStorage.removeItem("serEstar.driveOn"); }catch(e){}
+  if(el("driveConnect")) el("driveConnect").hidden=false;
+  if(el("driveSync")) el("driveSync").hidden=true;
+  if(el("driveDisconnect")) el("driveDisconnect").hidden=true;
+  setDriveStatus("No conectado");
+}
+function mergeSessions(incoming){
+  if(!Array.isArray(incoming)) return 0;
+  const seen=new Set(data.sessions.map(s=>s.t)); let added=0;
+  incoming.forEach(s=>{
+    if(s && typeof s.t==="number" && typeof s.correct==="number" && typeof s.total==="number" && !seen.has(s.t)){
+      if(!s.day) s.day=dayKey(s.t);
+      if(s.mode!=="escribir" && s.mode!=="elegir") s.mode="elegir";
+      data.sessions.push(s); seen.add(s.t); added++;
+    }
+  });
+  data.sessions.sort((a,b)=>a.t-b.t);
+  if(data.sessions.length>2000) data.sessions=data.sessions.slice(-2000);
+  if(added) saveStore(data);
+  return added;
+}
+async function driveFindFile(){
+  const q=encodeURIComponent("name='"+DRIVE_FILENAME+"'");
+  const r=await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q="+q,{headers:driveHeaders()});
+  if(!r.ok) throw new Error("list "+r.status);
+  const j=await r.json();
+  return (j.files && j.files[0]) ? j.files[0].id : null;
+}
+async function drivePull(){
+  if(!driveToken) return;
+  if(!driveFileId) driveFileId=await driveFindFile();
+  if(!driveFileId) return;
+  const r=await fetch("https://www.googleapis.com/drive/v3/files/"+driveFileId+"?alt=media",{headers:driveHeaders()});
+  if(!r.ok) throw new Error("get "+r.status);
+  mergeSessions((await r.json()).sessions);
+}
+async function drivePush(){
+  if(!driveToken) return;
+  if(!driveFileId) driveFileId=await driveFindFile();
+  if(driveFileId){
+    try{ const rr=await fetch("https://www.googleapis.com/drive/v3/files/"+driveFileId+"?alt=media",{headers:driveHeaders()}); if(rr.ok) mergeSessions((await rr.json()).sessions); }catch(e){}
+    const r=await fetch("https://www.googleapis.com/upload/drive/v3/files/"+driveFileId+"?uploadType=media",{method:"PATCH", headers:driveHeaders({"Content-Type":"application/json"}), body:JSON.stringify({sessions:data.sessions})});
+    if(!r.ok) throw new Error("patch "+r.status);
+  } else {
+    const meta={name:DRIVE_FILENAME, parents:["appDataFolder"]};
+    const b="serestar"+Date.now();
+    const body="--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+"\r\n--"+b+"\r\nContent-Type: application/json\r\n\r\n"+JSON.stringify({sessions:data.sessions})+"\r\n--"+b+"--";
+    const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:"POST", headers:driveHeaders({"Content-Type":"multipart/related; boundary="+b}), body});
+    if(!r.ok) throw new Error("create "+r.status);
+    driveFileId=(await r.json()).id;
+  }
+}
+async function driveSyncNow(){
+  if(!driveToken){ driveConnect(true); return; }
+  if(driveBusy) return; driveBusy=true;
+  setDriveStatus("Sincronizando…");
+  try{ await drivePull(); await drivePush(); renderStats(); setDriveStatus("Sincronizado · "+nowHM()); }
+  catch(e){ if((""+e).indexOf("401")>=0){ driveToken=null; setDriveStatus("Sesión expirada; reconectando…"); driveConnect(false); } else { setDriveStatus("Error al sincronizar."); } }
+  finally{ driveBusy=false; }
+}
+function driveMaybePush(){
+  if(!driveToken) return;
+  drivePush().then(()=>setDriveStatus("Sincronizado · "+nowHM())).catch(e=>{ if((""+e).indexOf("401")>=0){ driveToken=null; driveConnect(false); } });
+}
+if(el("driveConnect")) el("driveConnect").addEventListener("click", ()=>driveConnect(true));
+if(el("driveSync")) el("driveSync").addEventListener("click", driveSyncNow);
+if(el("driveDisconnect")) el("driveDisconnect").addEventListener("click", driveDisconnect);
+setDriveStatus(clientId() ? "No conectado" : "Sin configurar");
+(function(){ let on=false; try{ on=localStorage.getItem("serEstar.driveOn")==="1"; }catch(e){} if(on && clientId()){ setDriveStatus("Reconectando…"); driveConnect(false); } })();
 
 // keyboard
 document.addEventListener("keydown", e=>{
