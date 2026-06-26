@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>¿qué verbo? — verbos de parada y cese</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f1f0ec; --card:#ffffff; --ink:#1b232e; --muted:#6a7280; --line:#e4e2da;
+    --accent:#5b4b9a; --ok:#2f8f5b; --no:#c4453c;
+    --serif:"Spectral",Georgia,"Times New Roman",serif;
+    --sans:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(27,35,46,.05),0 12px 32px -12px rgba(27,35,46,.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 18px 56px;-webkit-font-smoothing:antialiased;}
+  .wrap{width:100%;max-width:640px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px;}
+  .mark{font-family:var(--sans);font-weight:600;font-size:25px;letter-spacing:-.01em;}
+  .mark .q{color:var(--accent);}
+  .reset{font-family:var(--sans);font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;padding:6px 4px;}
+  .reset:hover{color:var(--ink);} .reset[hidden]{display:none;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
+  .pad{padding:30px 30px 28px;}
+  .bar{height:3px;background:#eceae2;}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s ease;}
+  .reduce .bar>i{transition:none;}
+  .lead{font-family:var(--serif);font-size:21px;font-weight:400;line-height:1.5;margin:0 0 6px;}
+  .sub{font-size:14px;color:var(--muted);margin:0 0 26px;line-height:1.55;}
+  .field{margin:0 0 22px;}
+  .flabel{font-size:12px;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);margin:0 0 10px;}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .seg button{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--ink);background:var(--card);border:none;border-left:1px solid var(--line);padding:10px 20px;cursor:pointer;}
+  .seg button:first-child{border-left:none;}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:#fff;}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  .switch{display:inline-flex;align-items:center;gap:13px;background:none;border:none;cursor:pointer;padding:4px 0;font-family:var(--sans);}
+  .switch .track{width:46px;height:26px;border-radius:999px;background:#d9d6cc;position:relative;transition:background .18s ease;flex:0 0 auto;}
+  .switch .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);transition:transform .18s ease;}
+  .switch[aria-checked="true"] .track{background:var(--accent);}
+  .switch[aria-checked="true"] .knob{transform:translateX(20px);}
+  .switch .swlabel{font-size:15px;color:var(--ink);font-weight:500;}
+  .switch:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px;}
+  .swsub{font-size:12.5px;color:var(--muted);margin:9px 0 0;line-height:1.45;}
+  .reduce .switch .track,.reduce .switch .knob{transition:none;}
+  .primary{font-family:var(--sans);font-size:16px;font-weight:600;color:#fff;background:var(--ink);border:none;border-radius:11px;padding:14px 26px;cursor:pointer;transition:transform .08s ease,opacity .15s ease;}
+  .primary:hover{opacity:.92;} .primary:active{transform:translateY(1px);}
+  .primary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin:0 0 20px;}
+  .meta .score b{color:var(--ink);font-weight:600;}
+  .q-sent{font-family:var(--serif);font-weight:500;font-size:clamp(22px,4.8vw,28px);line-height:1.45;margin:6px 0 26px;}
+  .blank{display:inline-block;min-width:74px;border-bottom:2px solid #c8c5ba;text-align:center;color:transparent;}
+  .blank.fill{border-color:var(--accent);color:var(--accent);}
+  .opts{display:flex;flex-direction:column;gap:10px;}
+  .opt{font-family:var(--sans);font-size:18px;font-weight:500;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px 14px 46px;cursor:pointer;position:relative;text-align:left;transition:border-color .12s ease,background .12s ease,transform .08s ease;}
+  .opt:hover:not(:disabled){border-color:#c3c0b5;background:#faf9f6;}
+  .opt:active:not(:disabled){transform:translateY(1px);}
+  .opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .opt:disabled{cursor:default;}
+  .opt .k{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:12px;color:#a8a59a;font-weight:600;}
+  .opt.correct{border-color:var(--ok);background:#f1f9f4;}
+  .opt.wrong{border-color:var(--no);background:#fcf2f1;}
+  .opt .tick{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:700;opacity:0;}
+  .opt.correct .tick{opacity:1;color:var(--ok);} .opt.wrong .tick{opacity:1;color:var(--no);}
+  .typed{display:flex;gap:12px;}
+  .typed input{flex:1 1 auto;min-width:0;font-family:var(--serif);font-size:20px;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:15px 18px;}
+  .typed input::placeholder{color:#b7b4a9;}
+  .typed input:focus{outline:none;border-color:var(--accent);}
+  .typed input.correct{border-color:var(--ok);background:#f1f9f4;}
+  .typed input.wrong{border-color:var(--no);background:#fcf2f1;}
+  .typed input:disabled{color:var(--ink);opacity:1;}
+  .typed .primary{flex:0 0 auto;}
+  .fb{margin-top:24px;padding-top:22px;border-top:1px solid var(--line);}
+  .fb[hidden]{display:none;}
+  .fb.in{animation:rise .18s ease both;}
+  .reduce .fb.in{animation:none;}
+  @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:600;color:var(--accent);margin:0 0 9px;}
+  .filled{font-family:var(--serif);font-size:18px;line-height:1.45;margin:0 0 10px;color:var(--ink);}
+  .filled .v{font-weight:600;color:var(--accent);}
+  .why{font-family:var(--serif);font-size:16px;line-height:1.62;color:#3a4252;margin:0 0 22px;}
+  .next-row{display:flex;justify-content:flex-end;}
+  .rscore{font-family:var(--sans);font-weight:700;font-size:46px;letter-spacing:-.02em;margin:2px 0 4px;}
+  .rscore small{font-weight:500;font-size:22px;color:var(--muted);}
+  .rverdict{font-family:var(--serif);font-size:19px;line-height:1.5;margin:0 0 24px;}
+  .misshead{font-size:12px;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);margin:24px 0 12px;}
+  .miss{border-top:1px solid var(--line);padding:14px 0;} .miss:last-child{border-bottom:1px solid var(--line);}
+  .miss .ms{font-family:var(--serif);font-size:16px;line-height:1.45;margin:0 0 4px;} .miss .ms .v{font-weight:600;color:var(--accent);}
+  .miss .mw{font-family:var(--serif);font-size:14px;color:var(--muted);line-height:1.5;margin:0;}
+  .allright{font-family:var(--serif);font-size:16px;color:var(--ok);margin:18px 0 4px;}
+  .rbtns{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px;}
+  .ghost{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:11px;padding:13px 22px;cursor:pointer;}
+  .ghost:hover{border-color:#c3c0b5;background:#faf9f6;}
+  .ghost:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .ghost.danger{color:var(--no);} .ghost.danger:hover{border-color:var(--no);background:#fcf2f1;}
+  .hint{font-size:12px;color:#a9a69b;text-align:center;margin:18px 0 0;}
+  .stitle{font-family:var(--serif);font-size:24px;font-weight:500;margin:0 0 20px;}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 6px;}
+  .statcard{background:#faf9f6;border:1px solid var(--line);border-radius:12px;padding:14px 13px;}
+  .statcard .n{font-family:var(--sans);font-weight:700;font-size:24px;letter-spacing:-.01em;}
+  .statcard .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:5px;line-height:1.3;}
+  .sec-h{font-size:12px;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);margin:28px 0 14px;}
+  .chart{display:flex;align-items:flex-end;gap:8px;min-height:150px;}
+  .col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .col .cv{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--ink);}
+  .col .cbar{width:100%;max-width:34px;min-height:3px;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--accent),#7a6cc0);transition:height .4s ease;}
+  .col .cl{font-size:10.5px;color:var(--muted);white-space:nowrap;}
+  .reduce .col .cbar{transition:none;}
+  .slist{margin-top:2px;}
+  .srow{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:11px 0;}
+  .srow:last-child{border-bottom:1px solid var(--line);}
+  .srow .sd{color:var(--muted);font-family:var(--sans);font-size:13px;}
+  .srow .sm{font-size:11px;color:#fff;padding:2px 9px;border-radius:999px;letter-spacing:.03em;background:var(--accent);}
+  .srow .sm.escribir{background:#7a6cc0;}
+  .srow .ssc{font-family:var(--sans);font-weight:600;font-size:15px;margin-left:auto;}
+  .empty{font-family:var(--serif);font-size:16px;color:var(--muted);line-height:1.55;padding:6px 0 2px;}
+  [hidden]{display:none !important;}
+  @media (max-width:520px){.cards{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:440px){.pad{padding:24px 20px 22px;} .typed{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark"><span class="q">¿</span>qué verbo<span class="q">?</span></div>
+    <button class="reset" id="resetBtn" hidden>↺ reiniciar</button>
+  </header>
+
+  <section class="card" id="start">
+    <div class="pad">
+      <p class="lead">Elige el verbo correcto en cada frase.</p>
+      <p class="sub">Verbos de parada, cese e interrupción que suelen confundirse: parar, detenerse, dejar de, quedar(se), bajar(se), terminar, acabar(se), irse, cortar(se), apagar, colgar, frenar, interrumpir y más. El contexto de cada frase apunta a un único verbo. Español de América Latina.</p>
+      <div class="field">
+        <p class="flabel">Modo de respuesta</p>
+        <button class="switch" id="modeToggle" role="switch" aria-checked="false">
+          <span class="track"><span class="knob"></span></span>
+          <span class="swlabel">Escribir la respuesta</span>
+        </button>
+        <p class="swsub" id="swSub">Desactivado: eliges entre varias opciones.</p>
+      </div>
+      <div class="field">
+        <p class="flabel">¿Cuántas frases?</p>
+        <div class="seg" id="lenSeg" role="group" aria-label="Número de frases">
+          <button data-n="10" aria-pressed="false">10</button>
+          <button data-n="20" aria-pressed="true">20</button>
+          <button data-n="0" aria-pressed="false">Todas</button>
+        </div>
+      </div>
+      <div class="rbtns">
+        <button class="primary" id="startBtn">Empezar</button>
+        <button class="ghost" id="toStats">Ver rendimiento</button>
+      </div>
+      <p class="hint">Teclado: 1–4 o escribe la respuesta · Enter para continuar</p>
+    </div>
+  </section>
+
+  <section class="card" id="quiz" hidden>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="pad">
+      <div class="meta"><span id="counter"></span><span class="score">Aciertos <b id="scoreNum">0</b></span></div>
+      <div class="q-sent" id="qText"></div>
+      <div class="opts" id="opts"></div>
+      <div class="fb" id="fb" hidden>
+        <p class="eyebrow" id="fbCat"></p>
+        <p class="filled" id="fbFilled"></p>
+        <p class="why" id="fbWhy"></p>
+        <div class="next-row"><button class="primary" id="nextBtn">Siguiente →</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="results" hidden>
+    <div class="pad">
+      <div class="rscore" id="rScore"></div>
+      <p class="rverdict" id="rVerdict"></p>
+      <div id="missWrap"></div>
+      <div class="rbtns">
+        <button class="primary" id="againBtn">Reintentar</button>
+        <button class="ghost" id="reviewBtn" hidden>Repasar los fallos</button>
+        <button class="ghost" id="toStats2">Ver rendimiento</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="stats" hidden>
+    <div class="pad">
+      <p class="stitle">Rendimiento</p>
+      <div id="statsBody"></div>
+      <div class="rbtns">
+        <button class="primary" id="statsBack">← Volver</button>
+        <button class="ghost" id="exportBtn" hidden>Exportar (.json)</button>
+        <button class="ghost" id="importBtn">Importar</button>
+        <button class="ghost danger" id="clearBtn" hidden>Borrar datos</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+  </section>
+</div>
+
+<script>
+const BANK = [
+{s:"Después de veinte años, por fin ___ fumar.", opts:["dejó de","terminó de","se detuvo a","acabó"], a:"dejó de", cat:"Dejar de + infinitivo (cesar una actividad)", why:"«Dejar de + infinitivo» = cesar una acción o un hábito. «Terminar de + inf.» sería completarla; «detenerse a + inf.» es pausar para hacer algo; «acabar» no rige así."},
+{s:"El niño no ___ llorar en toda la noche.", opts:["dejó de","quedó de","bajó de","paró"], a:"dejó de", cat:"Dejar de + infinitivo", why:"«No dejó de llorar» = no cesó de llorar. Las otras opciones no rigen «+ infinitivo» con este sentido."},
+{s:"¡___ molestar a tu hermana!", opts:["Deja de","Para","Detén","Quita"], a:"Deja de", cat:"Dejar de + infinitivo", why:"Para ordenar el cese de una acción: «deja de + inf.». «Para/detén/quita» piden otro complemento y no encajan aquí."},
+{s:"El tren ___ en la estación y abrió las puertas.", opts:["se detuvo","se bajó","se quedó","dejó de"], a:"se detuvo", cat:"Detenerse (frenar un movimiento)", why:"«Detenerse» = frenar un movimiento. «Bajarse» es salir de un vehículo (lo hacen los pasajeros, no el tren); «quedarse» es permanecer."},
+{s:"El ascensor ___ entre dos pisos y nos asustamos.", opts:["se detuvo","se bajó","se quedó","se fue"], a:"se detuvo", cat:"Detenerse (frenar un movimiento)", why:"El ascensor «se detuvo» = se frenó. «Bajarse» lo hacen las personas; «quedarse/irse» no describen el frenazo."},
+{s:"La policía ___ al sospechoso en el aeropuerto.", opts:["detuvo","soltó","bajó","colgó"], a:"detuvo", cat:"Detener (arrestar)", why:"«Detener» también significa arrestar o apresar: «detuvo al sospechoso». «Soltar» sería liberarlo; las demás no encajan."},
+{s:"Como vio humo, ___ el carro a un lado de la carretera.", opts:["detuvo","quedó","bajó","colgó"], a:"detuvo", cat:"Detener (parar un vehículo)", why:"«Detener el carro» = pararlo. («Paró el carro» también vale.) «Quedar» no es transitivo así; «bajar» sería descender o sacarlo."},
+{s:"Me dormí en el bus y ___ en la parada equivocada.", opts:["me bajé","me detuve","me quedé","me fui"], a:"me bajé", cat:"Bajarse (de un vehículo)", why:"«Bajarse (de)» = salir de un vehículo. «Detenerse» es frenar; «quedarse» permanecer; «irse» marcharse."},
+{s:"Para llegar al museo, ___ del metro en la tercera estación.", opts:["bájate","párate","quédate","déjate"], a:"bájate", cat:"Bajarse (de un vehículo)", why:"«Bajarse del metro» = salir de él. «Pararse» (Am.) es ponerse de pie; «quedarse» permanecer."},
+{s:"Está muy alto; ___ un poco el volumen.", opts:["baja","apaga","cuelga","frena"], a:"baja", cat:"Bajar (reducir un nivel)", why:"«Bajar» = reducir un nivel (volumen, temperatura). «Apagar» sería apagarlo del todo; «cortar/frenar» no aplican."},
+{s:"Después de las fiestas, ___ los precios de los pasajes.", opts:["bajaron","pararon","se quedaron","cesaron"], a:"bajaron", cat:"Bajar (disminuir una cantidad)", why:"«Bajar» = disminuir (precios, cifras). Las demás no expresan descenso de cantidad."},
+{s:"No fui a la fiesta; ___ en casa viendo películas.", opts:["me quedé","me detuve","me bajé","paré"], a:"me quedé", cat:"Quedarse (permanecer en un lugar)", why:"«Quedarse» = permanecer. «Detenerse» es frenar un movimiento; «bajarse» salir de un vehículo."},
+{s:"Cuando todos se fueron, ella ___ sola en la oficina.", opts:["se quedó","se detuvo","se bajó","cesó"], a:"se quedó", cat:"Quedarse (permanecer)", why:"«Quedarse» = permanecer en el lugar tras irse los demás. Las demás no expresan permanencia."},
+{s:"El médico le pidió al niño que ___ quieto un momento.", opts:["se quedara","se detuviera","se bajara","se fuera"], a:"se quedara", cat:"Quedarse quieto (no moverse)", why:"«Quedarse quieto» = no moverse. «Detenerse» es frenar un movimiento ya iniciado; aquí se pide permanecer inmóvil."},
+{s:"Me ___ sin palabras cuando vi el regalo.", opts:["quedé","detuve","fui","bajé"], a:"quedé", cat:"Quedarse + adjetivo (pasar a un estado)", why:"«Quedarse + adj.» = pasar a un estado: «me quedé sin palabras / mudo». Las demás no expresan ese cambio."},
+{s:"Solo ___ dos días para el examen.", opts:["quedan","paran","bajan","terminan"], a:"quedan", cat:"Quedar (restar, lo que aún hay)", why:"«Quedar» = lo que aún resta: «quedan dos días». («Faltan dos días» es un sinónimo válido, no mostrado aquí.) Las opciones mostradas no expresan eso."},
+{s:"¿Cuánto dinero te ___ después de pagar el alquiler?", opts:["queda","para","baja","corta"], a:"queda", cat:"Quedar (restar)", why:"«Quedar» = lo que resta: «¿cuánto te queda?». Las demás no expresan lo que sobra tras gastar."},
+{s:"En medio del desierto ___ sin gasolina.", opts:["nos quedamos","nos detuvimos","nos bajamos","cesamos"], a:"nos quedamos", cat:"Quedarse sin (agotar un recurso)", why:"«Quedarse sin» = agotar un recurso. «Detenerse/bajarse» describen lo que pasa después, no la falta."},
+{s:"___ en vernos el viernes a las ocho.", opts:["Quedamos","Paramos","Dejamos","Acabamos"], a:"Quedamos", cat:"Quedar en (acordar una cita)", why:"«Quedar en + inf.» = acordar una cita: «quedamos en vernos». Es muy común. Las demás no significan acordar."},
+{s:"Después de discutir mucho, ___ en dividir la cuenta.", opts:["quedamos","paramos","dejamos","bajamos"], a:"quedamos", cat:"Quedar en (acordar)", why:"«Quedar en + inf.» = ponerse de acuerdo: «quedamos en dividir la cuenta»."},
+{s:"La reunión ___ a las seis y todos se fueron.", opts:["terminó","se detuvo","se quedó","bajó"], a:"terminó", cat:"Terminar (llegar a su fin)", why:"Un evento «termina» (llega a su fin). «Detenerse» es frenar un movimiento; «quedarse» permanecer."},
+{s:"¿Ya ___ de leer el informe?", opts:["terminaste","dejaste","paraste","cortaste"], a:"terminaste", cat:"Terminar de + infinitivo (completar)", why:"«Terminar de + inf.» = completar la acción. «Dejar de + inf.» sería abandonarla a medias."},
+{s:"No te preocupes, ___ de llegar hace un minuto.", opts:["acabo","dejo","quedo","paro"], a:"acabo", cat:"Acabar de + infinitivo (acción reciente)", why:"«Acabar de + inf.» = haber hecho algo hace muy poco: «acabo de llegar». No expresa cese, sino inmediatez."},
+{s:"No puedo hacer café porque ___ los granos.", opts:["se acabaron","se detuvieron","se quedaron","bajaron"], a:"se acabaron", cat:"Acabarse (agotarse una existencia)", why:"«Acabarse» = agotarse: «se acabaron los granos». Las demás no expresan agotamiento."},
+{s:"Apúrate, que ___ el tiempo.", opts:["se acaba","se para","se baja","se queda"], a:"se acaba", cat:"Acabarse (agotarse)", why:"«Acabarse el tiempo» = agotarse. «Pararse» sería detenerse; no aplica al tiempo aquí."},
+{s:"Por fin ___ de llover y salió el sol.", opts:["dejó","se fue","se quedó","bajó"], a:"dejó", cat:"Dejar de + infinitivo (cesar un fenómeno)", why:"«Dejar de llover» = cesar de llover. (También «paró de llover» o, más formal, «cesó la lluvia».) Entre las opciones mostradas, solo «dejó» rige «de + infinitivo»."},
+{s:"El ruido del motor por fin ___ y hubo silencio.", opts:["cesó","quedó","bajó","colgó"], a:"cesó", cat:"Cesar (terminar un fenómeno, formal)", why:"«Cesar» = terminar (un ruido, una actividad), de registro formal: «cesó el ruido». Las demás no expresan ese cese."},
+{s:"El perro cruzó la calle y el conductor tuvo que ___ de golpe.", opts:["frenar","quedarse","bajar","colgar"], a:"frenar", cat:"Frenar (accionar el freno)", why:"«Frenar» = accionar el freno bruscamente. «Detenerse» sería el resultado; aquí el énfasis es la acción de frenar."},
+{s:"Durante la tormenta ___ la luz por tres horas.", opts:["se fue","se quedó","se bajó","se durmió"], a:"se fue", cat:"Irse la luz (corte de electricidad)", why:"«Irse la luz» = corte eléctrico, muy común en América Latina. (También «se cortó la luz».) «Quedarse/bajarse» no aplican."},
+{s:"Se me ___ la llamada justo cuando hablábamos.", opts:["cortó","fue","paró","bajó"], a:"cortó", cat:"Cortarse (una llamada o conexión)", why:"«Cortarse» = interrumpirse una llamada o conexión: «se cortó la llamada». «Irse» se reserva más para la luz."},
+{s:"Antes de dormir, ___ la tele y las luces.", opts:["apagué","corté","bajé","detuve"], a:"apagué", cat:"Apagar (un aparato o luz)", why:"«Apagar» = desconectar un aparato o luz. «Cortar» sería interrumpir un suministro; «bajar» reducir, no apagar."},
+{s:"Se le acabó la batería y el celular ___.", opts:["se apagó","se bajó","se fue","se detuvo"], a:"se apagó", cat:"Apagarse (dejar de funcionar)", why:"«Apagarse» = dejar de funcionar un aparato. Las demás no describen que el equipo se apague."},
+{s:"Se enojó tanto que me ___ el teléfono sin despedirse.", opts:["colgó","apagó","bajó","frenó"], a:"colgó", cat:"Colgar (terminar una llamada)", why:"«Colgar» = cortar la comunicación colgando: «me colgó». (En América Latina también «me cortó».) «Apagar/bajar» no."},
+{s:"Como nadie contestaba, ___ (yo) el teléfono y volví a marcar.", opts:["colgué","apagué","bajé","frené"], a:"colgué", cat:"Colgar (el teléfono)", why:"«Colgar» = terminar la llamada colgando: «colgué y volví a marcar»."},
+{s:"Levantó la mano para no ___ al profesor mientras hablaba.", opts:["interrumpir","detener","bajar","colgar"], a:"interrumpir", cat:"Interrumpir (cortar a alguien o algo en curso)", why:"«Interrumpir» = cortar a quien habla o una actividad en curso. «Detener» es frenar un movimiento; no se usa para cortar a una persona."},
+{s:"El profesor ___ la clase para contestar una pregunta.", opts:["interrumpió","bajó","colgó","frenó"], a:"interrumpió", cat:"Interrumpir (cortar algo en curso)", why:"«Interrumpir» = cortar momentáneamente algo en curso: «interrumpió la clase». Las demás no encajan."},
+{s:"Por la lluvia, ___ el partido hasta el domingo.", opts:["aplazaron","detuvieron","bajaron","colgaron"], a:"aplazaron", cat:"Aplazar (posponer a otra fecha)", why:"«Aplazar» = posponer para más tarde: «hasta el domingo». «Suspender» sería cancelarlo; «detener» frenar."},
+{s:"El concierto se ___ por falta de público.", opts:["suspendió","detuvo","quedó","bajó"], a:"suspendió", cat:"Suspender (cancelar un evento)", why:"«Suspender(se)» = cancelar un evento. «Detenerse» es frenar un movimiento; «quedarse» permanecer."},
+{s:"Sin decir nada, ___ de la reunión a la mitad.", opts:["se fue","se quedó","se detuvo","se bajó"], a:"se fue", cat:"Irse (marcharse de un lugar)", why:"«Irse» = abandonar un lugar. «Quedarse» es lo contrario; «detenerse» frenar; «bajarse» salir de un vehículo."},
+{s:"Ya es tarde, creo que ___ (yo) a casa.", opts:["me voy","me quedo","me detengo","me bajo"], a:"me voy", cat:"Irse (marcharse)", why:"«Irse» = marcharse: «me voy a casa». «Quedarse» es permanecer; las demás no encajan."},
+{s:"¡Qué tonto! ___ las llaves dentro del carro.", opts:["Dejé","Quedé","Paré","Bajé"], a:"Dejé", cat:"Dejar (poner u olvidar algo)", why:"«Dejar algo» = ponerlo u olvidarlo en un lugar: «dejé las llaves». «Quedar» no es transitivo así (sería «se me quedaron las llaves»)."},
+{s:"Cuando entró el juez, todos ___ de sus asientos.", opts:["se pararon","se detuvieron","se quedaron","se bajaron"], a:"se pararon", cat:"Pararse (ponerse de pie, América Latina)", why:"En América Latina «pararse» = ponerse de pie: «se pararon». (También «se levantaron».) Ojo: en España «pararse» significa detenerse, según la región."},
+{s:"El reloj ___ porque se le acabó la pila.", opts:["se paró","se quedó","se fue","se bajó"], a:"se paró", cat:"Pararse (dejar de funcionar, un mecanismo)", why:"Un reloj o un motor «se para» = deja de funcionar. («Se detuvo» también vale.) «Quedarse/irse» no."},
+{s:"La música ___ de repente y la sala quedó en silencio.", opts:["paró","quedó","bajó","colgó"], a:"paró", cat:"Parar (cesar un sonido o actividad)", why:"«Parar» = cesar: «la música paró». («Se detuvo / cesó» también valen.) «Quedar/bajar/colgar» no expresan cese."},
+{s:"El bebé no ___ de moverse en toda la consulta.", opts:["paró","quedó","bajó","colgó"], a:"paró", cat:"Parar de + infinitivo (no cesar)", why:"«No paró de + inf.» = no cesó de hacerlo: «no paró de moverse». («No dejó de moverse» es igual de válido.)"}
+];
+
+const STORE_KEY="verbosParada.v1";
+function loadStore(){ try{const r=localStorage.getItem(STORE_KEY); if(r) return JSON.parse(r);}catch(e){} return null; }
+function saveStore(o){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(o)); }catch(e){} }
+let data=loadStore()||{sessions:[],fillMode:false};
+let fillMode=!!data.fillMode;
+
+const el=id=>document.getElementById(id);
+const startSec=el("start"),quizSec=el("quiz"),resSec=el("results"),statsSec=el("stats");
+const resetBtn=el("resetBtn"),modeToggle=el("modeToggle");
+let chosenLen=20,order=[],pos=0,score=0,answered=false,missed=[],pool=BANK;
+
+if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches) document.body.classList.add("reduce");
+
+function setMode(on){ fillMode=on; modeToggle.setAttribute("aria-checked",on?"true":"false"); el("swSub").textContent=on?"Activado: escribes el verbo tú mismo.":"Desactivado: eliges entre varias opciones."; data.fillMode=on; saveStore(data); }
+setMode(fillMode);
+modeToggle.addEventListener("click",()=>setMode(!fillMode));
+el("lenSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return; [...el("lenSeg").children].forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); chosenLen=parseInt(b.dataset.n,10); });
+el("startBtn").addEventListener("click",()=>startQuiz(BANK));
+el("againBtn").addEventListener("click",()=>startQuiz(BANK));
+el("reviewBtn").addEventListener("click",()=>startQuiz(missed.slice()));
+el("toStats").addEventListener("click",openStats);
+el("toStats2").addEventListener("click",openStats);
+el("statsBack").addEventListener("click",toStart);
+el("clearBtn").addEventListener("click",()=>{ if(confirm("¿Borrar todo el historial de práctica?")){ data.sessions=[]; saveStore(data); renderStats(); } });
+el("exportBtn").addEventListener("click",exportData);
+el("importBtn").addEventListener("click",()=>el("importFile").click());
+el("importFile").addEventListener("change",importData);
+resetBtn.addEventListener("click",toStart);
+
+function toStart(){ startSec.hidden=false;quizSec.hidden=true;resSec.hidden=true;statsSec.hidden=true;resetBtn.hidden=true; }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function norm(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[¿?¡!.,;:]/g,"").trim().replace(/\s+/g," "); }
+
+function startQuiz(src){ pool=src; let idx=shuffle(pool.map((_,i)=>i)); if(pool===BANK&&chosenLen>0) idx=idx.slice(0,chosenLen); order=idx; pos=0;score=0;missed=[]; startSec.hidden=true;resSec.hidden=true;statsSec.hidden=true;quizSec.hidden=false;resetBtn.hidden=false; el("scoreNum").textContent="0"; render(); }
+
+function render(){
+  answered=false; const q=pool[order[pos]];
+  el("counter").textContent="Pregunta "+(pos+1)+" / "+order.length;
+  el("barFill").style.width=(pos/order.length*100)+"%";
+  const parts=q.s.split(/_{3,}/);
+  el("qText").innerHTML=parts[0]+'<span class="blank" id="blankSpan"></span>'+(parts[1]||"");
+  const opts=el("opts"); opts.innerHTML="";
+  if(fillMode){
+    const input=document.createElement("input"); input.type="text"; input.id="answerInput"; input.autocomplete="off"; input.setAttribute("autocapitalize","off"); input.setAttribute("autocorrect","off"); input.spellcheck=false; input.placeholder="escribe el verbo…";
+    const check=document.createElement("button"); check.className="primary"; check.id="checkBtn"; check.type="button"; check.textContent="Comprobar"; check.addEventListener("click",checkTyped);
+    input.addEventListener("keydown",ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); ev.stopPropagation(); if(!answered) checkTyped(); } });
+    const row=document.createElement("div"); row.className="typed"; row.appendChild(input); row.appendChild(check); opts.appendChild(row);
+    setTimeout(()=>input.focus(),0);
+  } else {
+    shuffle(q.opts).forEach((o,i)=>{
+      const btn=document.createElement("button"); btn.className="opt"; btn.type="button"; btn.dataset.opt=o;
+      btn.innerHTML='<span class="k">'+(i+1)+'</span>'+o+'<span class="tick"></span>';
+      btn.addEventListener("click",()=>choose(o)); opts.appendChild(btn);
+    });
+  }
+  const fb=el("fb"); fb.hidden=true; fb.classList.remove("in");
+}
+function reveal(q){
+  const blank=el("blankSpan"); blank.textContent=q.a; blank.classList.add("fill");
+  el("fbCat").textContent=q.cat;
+  el("fbFilled").innerHTML=q.s.replace(/_{3,}/,'<span class="v">'+q.a+'</span>');
+  el("fbWhy").textContent=q.why;
+  const fb=el("fb"); fb.hidden=false; void fb.offsetWidth; fb.classList.add("in");
+  el("barFill").style.width=((pos+1)/order.length*100)+"%";
+  el("nextBtn").focus();
+}
+function choose(o){
+  if(answered)return; answered=true; const q=pool[order[pos]];
+  if(o===q.a){ score++; el("scoreNum").textContent=String(score); } else { missed.push(q); }
+  [...el("opts").children].forEach(btn=>{ btn.disabled=true; const v=btn.dataset.opt; const tick=btn.querySelector(".tick"); if(v===q.a){ btn.classList.add("correct"); tick.textContent="✓"; } else if(v===o){ btn.classList.add("wrong"); tick.textContent="✗"; } });
+  reveal(q);
+}
+function checkTyped(){
+  if(answered)return; const q=pool[order[pos]]; const inp=el("answerInput"); if(!inp)return;
+  const ok=norm(inp.value)===norm(q.a); answered=true; inp.disabled=true; const cb=el("checkBtn"); if(cb) cb.disabled=true;
+  if(ok){ score++; el("scoreNum").textContent=String(score); inp.classList.add("correct"); } else { missed.push(q); inp.classList.add("wrong"); }
+  reveal(q);
+}
+el("nextBtn").addEventListener("click",advance);
+function advance(){ if(!answered)return; pos++; if(pos>=order.length) showResults(); else render(); }
+function showResults(){
+  quizSec.hidden=true;resSec.hidden=false;resetBtn.hidden=false;
+  const ts=Date.now(); data.sessions.push({t:ts,day:dayKey(ts),correct:score,total:order.length,mode:fillMode?"escribir":"elegir"}); if(data.sessions.length>2000) data.sessions=data.sessions.slice(-2000); saveStore(data);
+  const total=order.length,pct=Math.round(score/total*100);
+  el("rScore").innerHTML=score+' <small>/ '+total+'</small>';
+  let v; if(pct>=90)v="Dominas estos verbos."; else if(pct>=75)v="Muy bien; afina los matices."; else if(pct>=50)v="Vas bien; revisa las diferencias."; else v="Conviene repasar y volver a intentarlo.";
+  el("rVerdict").textContent=v;
+  const wrap=el("missWrap"); wrap.innerHTML="";
+  if(missed.length===0){ wrap.innerHTML='<p class="allright">Sin errores. Bien hecho.</p>'; el("reviewBtn").hidden=true; }
+  else { let html='<p class="misshead">Para repasar ('+missed.length+')</p>'; missed.forEach(q=>{ const filled=q.s.replace(/_{3,}/,'<span class="v">'+q.a+'</span>'); html+='<div class="miss"><p class="ms">'+filled+'</p><p class="mw">'+q.why+'</p></div>'; }); wrap.innerHTML=html; el("reviewBtn").hidden=false; }
+}
+function dayKey(ts){ const d=new Date(ts); const z=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); }
+function fmtDateTime(ts){ const d=new Date(ts); const z=n=>String(n).padStart(2,"0"); return z(d.getDate())+"/"+z(d.getMonth()+1)+" "+z(d.getHours())+":"+z(d.getMinutes()); }
+function openStats(){ startSec.hidden=true;quizSec.hidden=true;resSec.hidden=true;statsSec.hidden=false;resetBtn.hidden=true; renderStats(); }
+function renderStats(){
+  const body=el("statsBody"); const ss=data.sessions;
+  if(!ss.length){ body.innerHTML='<p class="empty">Aún no hay datos. Completa una práctica y aquí verás tus aciertos por sesión y por día.</p>'; el("clearBtn").hidden=true; el("exportBtn").hidden=true; return; }
+  el("clearBtn").hidden=false; el("exportBtn").hidden=false;
+  const tc=ss.reduce((a,s)=>a+s.correct,0), tq=ss.reduce((a,s)=>a+s.total,0), acc=tq?Math.round(tc/tq*100):0;
+  const today=dayKey(Date.now()), todayC=ss.filter(s=>s.day===today).reduce((a,s)=>a+s.correct,0);
+  const byDay={}; ss.forEach(s=>{(byDay[s.day]=byDay[s.day]||{c:0});byDay[s.day].c+=s.correct;});
+  const days=Object.keys(byDay).sort(), show=days.slice(-14), maxC=Math.max(1,...show.map(d=>byDay[d].c));
+  let html='<div class="cards"><div class="statcard"><div class="n">'+ss.length+'</div><div class="l">Sesiones</div></div><div class="statcard"><div class="n">'+tc+'</div><div class="l">Respuestas correctas</div></div><div class="statcard"><div class="n">'+acc+'%</div><div class="l">Precisión global</div></div><div class="statcard"><div class="n">'+todayC+'</div><div class="l">Aciertos hoy</div></div></div>';
+  html+='<p class="sec-h">Respuestas correctas por día</p><div class="chart">';
+  show.forEach(d=>{ const c=byDay[d].c, h=Math.max(3,Math.round(c/maxC*110)), p=d.split("-"); html+='<div class="col"><div class="cv">'+c+'</div><div class="cbar" style="height:'+h+'px"></div><div class="cl">'+p[2]+'/'+p[1]+'</div></div>'; });
+  html+='</div>';
+  const recent=ss.slice().sort((a,b)=>b.t-a.t).slice(0,12);
+  html+='<p class="sec-h">Sesiones recientes</p><div class="slist">';
+  recent.forEach(s=>{ html+='<div class="srow"><span class="sd">'+fmtDateTime(s.t)+'</span><span class="sm '+s.mode+'">'+s.mode+'</span><span class="ssc">'+s.correct+' / '+s.total+'</span></div>'; });
+  html+='</div>'; body.innerHTML=html;
+}
+function exportData(){ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="verbos-parada-datos.json"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+function importData(e){ const file=e.target.files&&e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=()=>{ try{ const obj=JSON.parse(r.result); const inc=Array.isArray(obj.sessions)?obj.sessions:null; if(!inc) throw 0; const seen=new Set(data.sessions.map(s=>s.t)); let add=0; inc.forEach(s=>{ if(s&&typeof s.t==="number"&&typeof s.correct==="number"&&typeof s.total==="number"&&!seen.has(s.t)){ if(!s.day)s.day=dayKey(s.t); if(s.mode!=="escribir"&&s.mode!=="elegir")s.mode="elegir"; data.sessions.push(s); seen.add(s.t); add++; } }); data.sessions.sort((a,b)=>a.t-b.t); if(data.sessions.length>2000)data.sessions=data.sessions.slice(-2000); saveStore(data); renderStats(); alert(add?("Importadas "+add+" sesiones nuevas."):"El archivo no añadió sesiones nuevas."); }catch(err){ alert("No se pudo leer el archivo. Debe ser un export de esta práctica (.json)."); } e.target.value=""; }; r.onerror=()=>{ alert("No se pudo leer el archivo."); e.target.value=""; }; r.readAsText(file); }
+document.addEventListener("keydown",e=>{
+  if(quizSec.hidden)return;
+  if(!answered){
+    if(fillMode)return;
+    const n=parseInt(e.key,10);
+    if(n>=1&&n<=9){ const b=el("opts").children[n-1]; if(b) b.click(); }
+  } else { if(e.key==="Enter"||e.key===" "||e.key==="ArrowRight"){ e.preventDefault(); advance(); } }
+});
+</script>
+</body>
+</html>
